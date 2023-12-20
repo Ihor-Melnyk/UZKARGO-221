@@ -19,6 +19,11 @@ function setPropertyDisabled(attributeName, boolValue = true) {
   EdocsApi.setControlProperties(attributeProps);
 }
 
+function validationIsValue(attributeName, nameForThrow) {
+  if (!EdocsApi.getAttributeValue(attributeName).value) {
+    throw `Не заповнено значення поля "${nameForThrow}"`;
+  }
+}
 //Скрипт 1. Зміна властивостей атрибутів при створені документа
 function onCreate() {
   setContractorRPEmailOnCreate();
@@ -41,27 +46,8 @@ function onCardInitialize() {
   ToDoPaymentOptionTask();
   ReceiptFundsTask();
   EnterActResultTask();
-  setPropOnAddEmployeeTaskOrInformHeadTask();
   setCreateProps();
-}
-
-function SendOutDocTask() {
-  debugger;
-  var stateTask = EdocsApi.getCaseTaskDataByCode("SendOutDoc").state;
-  if (stateTask == "completed") {
-    setPropertyDisabled("Subject");
-    setPropertyDisabled("TelephoneContactPerson");
-    setPropertyDisabled("Branch");
-    setPropertyDisabled("RegNumber");
-    setPropertyDisabled("RegDate");
-    setPropertyDisabled("Registraion");
-  } else {
-    setPropertyDisabled("Subject", false);
-    setPropertyDisabled("TelephoneContactPerson", false);
-    setPropertyDisabled("RegNumber", false);
-    setPropertyDisabled("RegDate", false);
-    setPropertyDisabled("Registraion", false);
-  }
+  setPropResponsibleAndRegistration();
 }
 
 //Скрипт 4. Автоматичне визначення email контактної особи Замовника
@@ -141,24 +127,18 @@ function ToDoPaymentOptionTask() {
   var stateTask = EdocsApi.getCaseTaskDataByCode("ToDoPaymentOption" + EdocsApi.getAttributeValue("Sections").value)?.state;
 
   if (stateTask == "assigned" || stateTask == "inProgress" || stateTask == "delegated") {
-    setPropertyRequired("PaymentOption");
-    setPropertyHidden("PaymentOption", false);
-    setPropertyDisabled("PaymentOption", false);
+    EdocsApi.setControlProperties({ code: "PaymentOption", hidden: false, disabled: false, required: true });
   } else if (stateTask == "completed") {
-    setPropertyRequired("PaymentOption");
-    setPropertyHidden("PaymentOption", false);
-    setPropertyDisabled("PaymentOption");
+    EdocsApi.setControlProperties({ code: "PaymentOption", hidden: false, disabled: true, required: true });
   } else {
-    setPropertyRequired("PaymentOption", false);
-    setPropertyHidden("PaymentOption");
-    setPropertyDisabled("PaymentOption", false);
+    EdocsApi.setControlProperties({ code: "PaymentOption", hidden: true, disabled: false, required: false });
   }
 }
 
 function onTaskExecuteToDoPaymentOption(routeStage) {
   debugger;
   if (routeStage.executionResult == "executed") {
-    if (!EdocsApi.getAttributeValue("ResultMeeting").value) throw `Внесіть значення в поле  "Спосіб отримання коштів від Замовника"`;
+    validationIsValue("ResultMeeting", "Спосіб отримання коштів від Замовника");
   }
 }
 
@@ -168,26 +148,18 @@ function ReceiptFundsTask() {
   var stateTask = EdocsApi.getCaseTaskDataByCode("ReceiptFunds" + EdocsApi.getAttributeValue("Sections").value)?.state;
 
   if (stateTask == "assigned" || stateTask == "inProgress" || stateTask == "delegated") {
-    setPropertyRequired("StatusInvoice");
-    setPropertyHidden("StatusInvoice", false);
-    setPropertyDisabled("StatusInvoice", false);
-
-    //sendComment("Звернення на видачу ТУ погоджене. Очікуйте інформацію щодо подальших дій.");
+    EdocsApi.setControlProperties({ code: "StatusInvoice", hidden: false, disabled: false, required: true });
   } else if (stateTask == "completed") {
-    setPropertyRequired("StatusInvoice");
-    setPropertyHidden("StatusInvoice", false);
-    setPropertyDisabled("StatusInvoice");
+    EdocsApi.setControlProperties({ code: "StatusInvoice", hidden: false, disabled: true, required: true });
   } else {
-    setPropertyRequired("StatusInvoice", false);
-    setPropertyHidden("StatusInvoice");
-    setPropertyDisabled("StatusInvoice", false);
+    EdocsApi.setControlProperties({ code: "StatusInvoice", hidden: true, disabled: false, required: false });
   }
 }
 
 function onTaskExecuteReceiptFunds(routeStage) {
   debugger;
   if (routeStage.executionResult == "executed") {
-    if (!EdocsApi.getAttributeValue("StatusInvoice").value) throw `Внесіть значення в поле "Статус оплати Замовником"`;
+    validationIsValue("StatusInvoice", "Статус оплати Замовником");
   }
 }
 
@@ -197,24 +169,18 @@ function EnterActResultTask() {
   var stateTask = EdocsApi.getCaseTaskDataByCode("EnterActResult" + EdocsApi.getAttributeValue("Sections").value)?.state;
 
   if (stateTask == "assigned" || stateTask == "inProgress" || stateTask == "delegated") {
-    setPropertyRequired("ActMeetingResult");
-    setPropertyHidden("ActMeetingResult", false);
-    setPropertyDisabled("ActMeetingResult", false);
+    EdocsApi.setControlProperties({ code: "ActMeetingResult", hidden: false, disabled: false, required: true });
   } else if (stateTask == "completed") {
-    setPropertyRequired("ActMeetingResult");
-    setPropertyHidden("ActMeetingResult", false);
-    setPropertyDisabled("ActMeetingResult");
+    EdocsApi.setControlProperties({ code: "ActMeetingResult", hidden: false, disabled: true, required: true });
   } else {
-    setPropertyRequired("ActMeetingResult", false);
-    setPropertyHidden("ActMeetingResult");
-    setPropertyDisabled("ActMeetingResult", false);
+    EdocsApi.setControlProperties({ code: "ActMeetingResult", hidden: true, disabled: false, required: false });
   }
 }
 
 function onTaskExecuteEnterActResult(routeStage) {
   debugger;
   if (routeStage.executionResult == "executed") {
-    if (!EdocsApi.getAttributeValue("ActMeetingResult").value) throw `Внесіть значення в поле "Результат розгляду акту комісією"`;
+    validationIsValue("ActMeetingResult", "Результат розгляду акту комісією");
   }
 }
 
@@ -226,46 +192,18 @@ function setBranchAndSectionsOnCreate() {
     if (atr)
       switch (atr.find((x) => x.code == "LegalEntityCode" && x.row == "1")?.value) {
         case "40081195":
-          EdocsApi.setAttributeValue({
-            code: "Branch",
-            value: 82,
-            text: null,
-          });
-          EdocsApi.setAttributeValue({
-            code: "Sections",
-            value: "40081195",
-            text: null,
-          });
+          EdocsApi.setAttributeValue({ code: "Branch", value: 82, text: null });
+          EdocsApi.setAttributeValue({ code: "Sections", value: "40081195", text: null });
           break;
 
         case "40081216":
-          EdocsApi.setAttributeValue({
-            code: "Branch",
-            value: 86,
-            text: null,
-          });
-          EdocsApi.setAttributeValue({
-            code: "Sections",
-            value: "40081216",
-            text: null,
-          });
+          EdocsApi.setAttributeValue({ code: "Branch", value: 86, text: null });
+          EdocsApi.setAttributeValue({ code: "Sections", value: "40081216", text: null });
           break;
 
         case "40081237":
-          EdocsApi.setAttributeValue({
-            code: "Branch",
-            value: 252,
-            text: null,
-          });
-          EdocsApi.setAttributeValue({
-            code: "Sections",
-            value: "40081237",
-            text: null,
-          });
-
-          break;
-
-        default:
+          EdocsApi.setAttributeValue({ code: "Branch", value: 252, text: null });
+          EdocsApi.setAttributeValue({ code: "Sections", value: "40081237", text: null });
           break;
       }
   }
@@ -275,70 +213,52 @@ function setBranchAndSectionsOnCreate() {
 function onTaskExecutedAddEmployee(routeStage) {
   debugger;
   if (routeStage.executionResult == "executed") {
-    SendOutDocTask();
+    EdocsApi.setControlProperties({ code: "Subject", hidden: false, disabled: false, required: true });
+    EdocsApi.setControlProperties({ code: "RegNumber", hidden: false, disabled: false, required: true });
+    EdocsApi.setControlProperties({ code: "RegDate", hidden: false, disabled: false, required: true });
+    EdocsApi.setControlProperties({ code: "Registraion", hidden: false, disabled: false, required: true });
   }
 }
-function SendOutDocTask() {
+
+function SendOutDocTask(stateTask) {
   debugger;
-  var stateTask = EdocsApi.getCaseTaskDataByCode("SendOutDoc")?.state;
+  if (!stateTask) {
+    stateTask = EdocsApi.getCaseTaskDataByCode("SendOutDoc")?.state;
+  }
   if (stateTask == "assigned" || stateTask == "inProgress" || stateTask == "delegated") {
-    // setPropertyRequired("TelephoneContactPerson");
+    EdocsApi.setControlProperties({ code: "Subject", hidden: false, disabled: false, required: true });
     setPropertyHidden("TelephoneContactPerson", false);
     setPropertyDisabled("TelephoneContactPerson", false);
-    setPropertyRequired("Subject");
-    setPropertyHidden("Subject", false);
-    setPropertyDisabled("Subject", false);
-    setPropertyRequired("RegNumber");
-    setPropertyHidden("RegNumber", false);
-    setPropertyDisabled("RegNumber", false);
-    setPropertyRequired("RegDate");
-    setPropertyHidden("RegDate", false);
-    setPropertyDisabled("RegDate", false);
-    setPropertyRequired("Registraion");
-    setPropertyHidden("Registraion", false);
-    setPropertyDisabled("Registraion", false);
   } else if (stateTask == "completed") {
-    // setPropertyRequired("TelephoneContactPerson");
+    EdocsApi.setControlProperties({ code: "Subject", hidden: false, disabled: true, required: true });
     setPropertyHidden("TelephoneContactPerson", false);
     setPropertyDisabled("TelephoneContactPerson");
-    setPropertyRequired("Subject");
-    setPropertyHidden("Subject", false);
-    setPropertyDisabled("Subject");
-    setPropertyRequired("RegNumber");
-    setPropertyHidden("RegNumber", false);
-    setPropertyDisabled("RegNumber");
-    setPropertyRequired("RegDate");
-    setPropertyHidden("RegDate", false);
-    setPropertyDisabled("RegDate");
-    setPropertyRequired("Registraion");
-    setPropertyHidden("Registraion", false);
-    setPropertyDisabled("Registraion");
+    setPropertyDisabled("Branch");
+  } else if (stateTask == "rejected") {
+    if (EdocsApi.getCaseTaskDataByCode("AddEmployee" + EdocsApi.getAttributeValue("Sections").value)?.state == "rejected") {
+      EdocsApi.setControlProperties({ code: "Subject", hidden: true, disabled: true, required: false });
+      EdocsApi.setControlProperties({ code: "TelephoneContactPerson", hidden: true, disabled: true, required: false });
+      EdocsApi.setControlProperties({ code: "StructureDepart", hidden: true, disabled: true, required: false });
+      EdocsApi.setControlProperties({ code: "VisaHolder", hidden: true, disabled: true, required: false });
+      EdocsApi.setControlProperties({ code: "Registraion", hidden: true, disabled: true, required: false });
+      EdocsApi.setControlProperties({ code: "RegNumber", hidden: true, disabled: true, required: false });
+      EdocsApi.setControlProperties({ code: "RegDate", hidden: true, disabled: true, required: false });
+    }
   } else {
-    setPropertyRequired("TelephoneContactPerson", false);
-    setPropertyHidden("TelephoneContactPerson");
-    setPropertyDisabled("TelephoneContactPerson", false);
-    setPropertyDisabled("Subject", false);
-    setPropertyRequired("Subject", false);
-    setPropertyHidden("Subject");
-    setPropertyRequired("RegNumber", false);
-    setPropertyHidden("RegNumber");
-    setPropertyDisabled("RegNumber", false);
-    setPropertyRequired("RegDate", false);
-    setPropertyHidden("RegDate");
-    setPropertyDisabled("RegDate", false);
-    setPropertyRequired("Registraion", false);
-    setPropertyHidden("Registraion");
-    setPropertyDisabled("Registraion", false);
+    EdocsApi.setControlProperties({ code: "Subject", hidden: true, disabled: false, required: false });
+    EdocsApi.setControlProperties({ code: "TelephoneContactPerson", hidden: true, disabled: false, required: false });
   }
 }
 
 function onTaskExecuteSendOutDoc(routeStage) {
   debugger;
   if (routeStage.executionResult == "executed") {
-    if (!EdocsApi.getAttributeValue("RegNumber").value) throw `Не заповнено значення поля "Реєстраційний номер"`;
-    if (!EdocsApi.getAttributeValue("RegDate").value) throw `Не заповнено значення поля "Реєстраційна дата"`;
-    if (!EdocsApi.getAttributeValue("Registraion").value) throw `Не заповнено значення поля "Реєстрація"`;
+    validationIsValue("RegNumber", "Реєстраційний номер");
+    validationIsValue("RegDate", "Реєстраційна дата");
+    validationIsValue("Registraion", "Реєстрація");
     sendComment(`Ваше звернення прийняте та зареєстроване за № ${EdocsApi.getAttributeValue("RegNumber").value} від ${moment(new Date(EdocsApi.getAttributeValue("RegDate").value)).format("DD.MM.YYYY")}`);
+  } else {
+    SendOutDocTask("rejected");
   }
 }
 
@@ -379,42 +299,69 @@ function onTaskCommentedSendOutDoc(caseTaskComment) {
 //зміна властивостей при паралельних процесах
 //Скрипт 1. Зміна властивостей атрибутів полів карточки
 function onTaskPickUpedAddEmployee() {
-  setPropOnAddEmployeeTaskOrInformHeadTask();
+  setPropResponsibleAndRegistration();
 }
 
 function onTaskPickUpedInformHead() {
-  setPropOnAddEmployeeTaskOrInformHeadTask();
+  setPropResponsibleAndRegistration();
 }
 
-function setPropOnAddEmployeeTaskOrInformHeadTask() {
+function setPropResponsibleAndRegistration() {
   debugger;
   var CaseTaskAddEmployee = EdocsApi.getCaseTaskDataByCode("AddEmployee" + EdocsApi.getAttributeValue("Sections").value);
   var CaseTaskInformHead = EdocsApi.getCaseTaskDataByCode("InformHead" + EdocsApi.getAttributeValue("Sections").value);
 
-  //етап AddEmployee взято в роботу, поточний користувач = виконавець завдання AddEmployee
-  if ((CaseTaskAddEmployee.state == "assigned" && CurrentUser.employeeId == CaseTaskAddEmployee.executorId) || (CaseTaskAddEmployee.state == "inProgress" && CurrentUser.employeeId == CaseTaskAddEmployee.executorId) || (CaseTaskAddEmployee.state == "delegated" && CurrentUser.employeeId == CaseTaskAddEmployee.executorId)) {
-    setPropertyRequired("Responsible");
-    setPropertyDisabled("Responsible", false);
+  if (
+    //етап AddEmployee взято в роботу, поточний користувач == виконавець завдання AddEmployee
+    (CaseTaskAddEmployee.state == "inProgress" && CurrentUser.employeeId == CaseTaskAddEmployee.executorId) ||
+    (CaseTaskAddEmployee.state == "delegated" && CurrentUser.employeeId == CaseTaskAddEmployee.executorId)
+  ) {
+    EdocsApi.setControlProperties({ code: "Responsible", hidden: false, disabled: false, required: true });
+    EdocsApi.setControlProperties({ code: "Registraion", hidden: false, disabled: false, required: true });
+    EdocsApi.setControlProperties({ code: "RegDate", hidden: false, disabled: false, required: true });
+    EdocsApi.setControlProperties({ code: "RegNumber", hidden: false, disabled: false, required: true });
   } else if (
-    //етап InformHead взято в роботу, поточний користувач = виконавець завдання InformHead
-    (CaseTaskInformHead.state == "assigned" && CurrentUser.employeeId == CaseTaskInformHead.executorId) ||
+    //етап InformHead взято в роботу, поточний користувач == виконавець завдання InformHead
     (CaseTaskInformHead.state == "inProgress" && CurrentUser.employeeId == CaseTaskInformHead.executorId) ||
     (CaseTaskInformHead.state == "delegated" && CurrentUser.employeeId == CaseTaskInformHead.executorId)
   ) {
-    setPropertyRequired("Responsible", false);
-    setPropertyDisabled("Responsible", false);
-  } else if (CaseTaskAddEmployee.state == "completed" || CaseTaskInformHead.state == "completed") {
-    setPropertyRequired("Responsible");
-    setPropertyDisabled("Responsible");
+    EdocsApi.setControlProperties({ code: "Responsible", hidden: false, disabled: true, required: false });
+    EdocsApi.setControlProperties({ code: "Registraion", hidden: false, disabled: true, required: false });
+    EdocsApi.setControlProperties({ code: "RegDate", hidden: false, disabled: true, required: false });
+    EdocsApi.setControlProperties({ code: "RegNumber", hidden: false, disabled: true, required: false });
+  } else if (CaseTaskAddEmployee.state == "completed" && CaseTaskInformHead.state == "completed") {
+    EdocsApi.setControlProperties({ code: "Responsible", hidden: false, disabled: true, required: true });
+    EdocsApi.setControlProperties({ code: "Registraion", hidden: false, disabled: true, required: true });
+    EdocsApi.setControlProperties({ code: "RegDate", hidden: false, disabled: true, required: true });
+    EdocsApi.setControlProperties({ code: "RegNumber", hidden: false, disabled: true, required: true });
   } else {
-    setPropertyRequired("Responsible", false);
-    setPropertyDisabled("Responsible", false);
+    setPropertyHidden("Responsible", false);
+    setPropertyRequired("Responsible");
+    //setPropertyDisabled("Responsible");
+    setPropertyHidden("RegDate", false);
+    setPropertyRequired("RegDate");
+    setPropertyHidden("Registraion", false);
+    setPropertyRequired("Registraion");
+    setPropertyHidden("RegNumber", false);
+    setPropertyRequired("RegNumber");
   }
 }
 
 function onTaskExecuteAddEmployee(routeStage) {
   debugger;
   if (routeStage.executionResult == "executed") {
-    if (!EdocsApi.getAttributeValue("Responsible").value) throw `Внесіть значення в поле "Відповідальний працівник"`;
+    validationIsValue("Responsible", "Відповідальний працівник");
+    validationIsValue("RegDate", "Реєстраційна дата");
+    validationIsValue("RegNumber", "Реєстраційний номер");
+    validationIsValue("Registraion", "Реєстрація");
+  }
+}
+
+function setPropRegistration() {
+  debugger;
+  if (EdocsApi.getCaseTaskDataByCode("AddEmployee" + EdocsApi.getAttributeValue("Sections").value)?.state == "completed" && EdocsApi.getCaseTaskDataByCode("MainTask")?.state == "rejected") {
+    EdocsApi.setControlProperties({ code: "Registraion", hidden: true, disabled: true, required: false });
+    EdocsApi.setControlProperties({ code: "RegDate", hidden: true, disabled: true, required: false });
+    EdocsApi.setControlProperties({ code: "RegNumber", hidden: true, disabled: true, required: false });
   }
 }
